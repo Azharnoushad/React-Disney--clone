@@ -1,25 +1,46 @@
-import React from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import { auth, provider } from "../firebase/firebase";
 import { signInWithPopup } from "firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
-import { setUserLoginDetails } from "../redux/userSlice/userSlice";
+import { setSignOut, setUserLoginDetails } from "../redux/userSlice/userSlice";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const disptach = useDispatch();
 
+  const navigate = useNavigate();
   const { name, email, photo } = useSelector((state) => state.authUser);
 
   const handleGoogleSignIn = () => {
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        const user = result.user;
-        setUser(user);
-      })
-      .catch((error) => {
-        console.error(error.message);
-      });
+    if (!name) {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          setUser(user);
+        })
+        .catch((error) => {
+          console.error(error.message);
+        });
+    } else if (name) {
+      auth
+        .signOut()
+        .then(() => {
+          disptach(setSignOut());
+          navigate("/");
+        })
+        .catch((error) => alert(error.message));
+    }
   };
+
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUser(user);
+        navigate("/home");
+      }
+    });
+  }, [name]);
 
   const setUser = (user) => {
     disptach(
@@ -30,45 +51,56 @@ const Header = () => {
       })
     );
   };
+
   return (
     <Nav>
       <Logo>
         <img src="/images/logo.svg" alt="" />
       </Logo>
 
-      <NavMenu>
-        <a href="/home">
-          <img src="/images/home-icon.svg" alt="Home" />
-          <span>HOME</span>
-        </a>
+      {!name ? (
+        <Login onClick={handleGoogleSignIn}>LOGIN</Login>
+      ) : (
+        <>
+          <NavMenu>
+            <a href="/home">
+              <img src="/images/home-icon.svg" alt="Home" />
+              <span>HOME</span>
+            </a>
 
-        <a href="/home">
-          <img src="/images/search-icon.svg" alt="Home" />
-          <span>SEARCH</span>
-        </a>
+            <a href="/home">
+              <img src="/images/search-icon.svg" alt="Home" />
+              <span>SEARCH</span>
+            </a>
 
-        <a href="/home">
-          <img src="/images/watchlist-icon.svg" alt="Home" />
-          <span>WATCHLIST</span>
-        </a>
+            <a href="/home">
+              <img src="/images/watchlist-icon.svg" alt="Home" />
+              <span>WATCHLIST</span>
+            </a>
 
-        <a href="/home">
-          <img src="/images/original-icon.svg" alt="Home" />
-          <span>ORIGINALS</span>
-        </a>
+            <a href="/home">
+              <img src="/images/original-icon.svg" alt="Home" />
+              <span>ORIGINALS</span>
+            </a>
 
-        <a href="/home">
-          <img src="/images/movie-icon.svg" alt="Home" />
-          <span>MOVIES</span>
-        </a>
+            <a href="/home">
+              <img src="/images/movie-icon.svg" alt="Home" />
+              <span>MOVIES</span>
+            </a>
 
-        <a href="/home">
-          <img src="/images/series-icon.svg" alt="Home" />
-          <span>SERIES</span>
-        </a>
-      </NavMenu>
-
-      <Login onClick={handleGoogleSignIn}>LOGIN</Login>
+            <a href="/home">
+              <img src="/images/series-icon.svg" alt="Home" />
+              <span>SERIES</span>
+            </a>
+          </NavMenu>
+          <SignOut>
+            <UserImage src={photo} alt={name} />
+            <DropDown>
+              <span onClick={handleGoogleSignIn}>Sign out</span>
+            </DropDown>
+          </SignOut>
+        </>
+      )}
     </Nav>
   );
 };
@@ -174,6 +206,63 @@ const Login = styled.a`
     background-color: rgb(249, 249, 249);
     color: #000;
     border-color: transparent;
+  }
+`;
+
+const UserImage = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px #33eeee;
+  }
+`;
+
+const DropDown = styled.div`
+  position: absolute;
+  text-align: center;
+  top: 53px;
+  right: -18px;
+  background: rgb(19, 19, 19);
+  border: 1px solid rgba(151, 151, 151, 0.34);
+  border-radius: 4px;
+  box-shadow: rgb(0 0 0 /50%) 0px 0px 18px 0px;
+  padding: 10;
+  font-size: 14px;
+  letter-spacing: 3px;
+  width: 100px;
+  opacity: 0;
+  cursor: pointer;
+  transition: 1s ease-in-out;
+
+  &:before {
+    content: "";
+    position: absolute;
+    top: -20px;
+    left: 55%;
+    margin-left: -10px; /* Adjust this value to center the arrow */
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(151, 151, 151, 0.34) transparent;
+    transition: 1s ease-in-out;
+  }
+`;
+
+const SignOut = styled.div`
+  position: relative;
+  height: 48px;
+  width: 48px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    ${DropDown} {
+      opacity: 1;
+    }
   }
 `;
 
